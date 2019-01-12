@@ -1,0 +1,107 @@
+---
+title: "Introduction to broom"
+author: "Oleksiy Anokhin"
+date: "January 12, 2019"
+output: html_document
+       # : code_folding: hide
+---
+
+This code was adapted from ["Introduction to broom"](https://cran.r-project.org/web/packages/broom/vignettes/broom.html) vignette
+
+**Tidying functions**
+This package provides three S3 methods that do three distinct kinds of tidying.
+
+* **tidy:** constructs a data frame that summarizes the model's statistical findings. This includes coefficients and p-values for each term in a regression, per-cluster information in clustering applications, or per-test information for multtest functions.
+* **augment:** add columns to the original data that was modeled. This includes predictions, residuals, and cluster assignments.
+* **glance:** construct a concise one-row summary of the model. This typically contains values such as R^2, adjusted R^2, and residual standard error that are computed once for the entire model.
+
+```{r, broom1, echo = TRUE, message = FALSE, warning = FALSE}
+# Packages
+library(broom)
+library(ggplot2)
+```
+
+Let's create the first model.
+```{r, broom2, echo = TRUE, message = FALSE, warning = FALSE}
+lmfit <- lm(mpg ~ wt, mtcars)
+```
+
+
+Another option to create and visualize model - ggplot2.
+```{r, broom3, echo = TRUE, message = FALSE, warning = FALSE}
+ggplot(mtcars, aes(x = mpg, y = wt)) +
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+```
+
+Let's print model output.
+
+Compare two options - traditional and tidy (with broom).
+
+```{r, broom4, echo = TRUE, message = FALSE, warning = FALSE}
+summary(lmfit)
+
+tidy(lmfit)
+```
+
+Which one do you like more? I like the second one. 
+
+This gives you a data.frame representation. Note that the row names have been moved into a column called **term**, and the column names are simple and consistent (and can be accessed using $).
+
+Instead of viewing the coefficients, you might be interested in the fitted values and residuals for each of the original points in the regression. For this, use augment, which augments the original data with information from the model:
+
+```{r, broom5, echo = TRUE, message = FALSE, warning = FALSE}
+augment(lmfit)
+```
+
+Note that each of the new columns begins with a . (to avoid overwriting any of the original columns).
+
+Finally, several summary statistics are computed for the entire regression, such as R^2 and the F-statistic. These can be accessed with the glance function:
+
+
+```{r, broom6, echo = TRUE, message = FALSE, warning = FALSE}
+glance(lmfit)
+```
+
+Note that the statistics computed by glance are different for glm objects than for lm (e.g. deviance rather than R^2):
+
+These functions also work on other fits, such as nonlinear models (nls)
+
+```{r, broom7, echo = TRUE, message = FALSE, warning = FALSE}
+nlsfit <- nls(mpg ~ k / wt + b, mtcars, start = list(k  =1, b = 0))
+tidy(nlsfit)
+
+augment(nlsfit, mtcars)
+
+glance(nlsfit)
+```
+
+**Hypothesis testing**
+The tidy function can also be applied to htest objects, such as those output by popular built-in functions like t.test, cor.test, and wilcox.test.
+
+```{r, broom8, echo = TRUE, message = FALSE, warning = FALSE}
+tt <- t.test(wt ~ am, mtcars)
+tidy(tt)
+```
+
+Some cases might have fewer columns (for example, no confidence interval):
+```{r, broom9, echo = TRUE, message = FALSE, warning = FALSE}
+wt <- wilcox.test(wt ~ am, mtcars)
+tidy(wt)
+```
+
+Since the tidy output is already only one row, glance returns the same output:
+```{r, broom10, echo = TRUE, message = FALSE, warning = FALSE}
+glance(tt)
+
+glance(wt)
+```
+
+Augment method is defined only for chi-squared tests, since there is no meaningful sense, for other tests, in which a hypothesis test produces output about each initial data point.
+
+```{r, broom11, echo = TRUE, message = FALSE, warning = FALSE}
+chit <- chisq.test(xtabs(Freq ~ Sex + Class, data = as.data.frame(Titanic)))
+tidy(chit)
+
+augment(chit)
+```
